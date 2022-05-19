@@ -1,4 +1,3 @@
-
 package adaptercliente;
 
 import adaptercliente.model.Cliente;
@@ -17,5 +16,4 @@ public class Main {
         visao.setInformacoesCliente(cliente);
         visao.setVisible(true);
     }
-    
 }
