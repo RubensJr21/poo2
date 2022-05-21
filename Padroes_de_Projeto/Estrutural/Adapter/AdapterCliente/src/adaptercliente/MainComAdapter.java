@@ -22,6 +22,13 @@ public class MainComAdapter {
         ce.setSobreNome("Silva");
         VisaoCliente visao = new VisaoCliente();
         ClienteAdapter cliente  = new ClienteAdapter(ce);
+        
+        // Exemplo de chamada das funções set que não estão implementadas
+        cliente.setCelular("");
+        cliente.setTelefone("");
+        cliente.setEmail("");
+        cliente.setNomeCompleto("");
+        // Fim do exemplo
         visao.setInformacoesCliente(cliente);//espera um Cliente
         visao.setVisible(true);                 
     }
