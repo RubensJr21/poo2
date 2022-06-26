@@ -1,6 +1,4 @@
-
 package strategy;
-
 
 import java.io.*;
 import java.util.TreeSet;
@@ -12,33 +10,21 @@ import javax.swing.*;
  
 public class SaveImage extends Component implements ActionListener {
  
-    String descs[] = {
-    "Original", 
-        "Convolve : LowPass",
-        "Convolve : Sharpen", 
-        "LookupOp",
-    };
+    String descs[];
  
-    int opIndex;
     private BufferedImage bi, biFiltered;
     int w, h;
-     
-    public static final float[] SHARPEN3x3 = { // sharpening filter kernel
-        0.f, -1.f,  0.f,
-       -1.f,  5.f, -1.f,
-        0.f, -1.f,  0.f
-    };
- 
-    public static final float[] BLUR3x3 = {
-        0.1f, 0.1f, 0.1f,    // low-pass filter kernel
-        0.1f, 0.2f, 0.1f,
-        0.1f, 0.1f, 0.1f
-    };
+    private Filtragem filtragem = new Filtragem();
     
- 
+    public BufferedImage getBi(){ return bi; }
+    public void setBi(BufferedImage bi){ this.bi = bi; }
+    public BufferedImage getBiFiltered(){ return biFiltered; }
+    public void setBiFiltered(BufferedImage bi){ this.biFiltered = bi; }
+    
     public SaveImage() {
+        this.filtragem.setFilter(new Original(this));
+        this.descs = new String[]{"Original", "Convolve : LowPass", "Convolve : Sharpen", "LookupOp"};
         try {
-            
             String current = new java.io.File(".").getCanonicalPath();                   
             
             bi = ImageIO.read(new File(current + "\\src\\" + "praia.jpeg"));            
@@ -57,6 +43,7 @@ public class SaveImage extends Component implements ActionListener {
         }
     }
  
+    @Override
     public Dimension getPreferredSize() {
         return new Dimension(w, h);
     }
@@ -65,69 +52,47 @@ public class SaveImage extends Component implements ActionListener {
         return descs;
     }
  
-    void setOpIndex(int i) {
-        opIndex = i;
-    }
- 
+    @Override
     public void paint(Graphics g) {
         filterImage();
         g.drawImage(biFiltered, 0, 0, null);
     }
- 
-    int lastOp;
+    
     public void filterImage() {
-        BufferedImageOp op = null;
- 
-        if (opIndex == lastOp) {
-            return;
+        if(!this.filtragem.isFiltered()){
+            this.filtragem.filter();
         }
-        lastOp = opIndex;
-        switch (opIndex) {
- 
-        case 0: /* original */
-                biFiltered = bi;
-                return; 
-        case 1:  /* low pass filter */
-        case 2:  /* sharpen */
-            float[] data = (opIndex == 1) ? BLUR3x3 : SHARPEN3x3;
-            op = new ConvolveOp(new Kernel(3, 3, data),
-                                ConvolveOp.EDGE_NO_OP,
-                                null);
-            break;
-        case 3 : /* lookup */
-            byte lut[] = new byte[256];
-            for (int j=0; j<256; j++) {
-                lut[j] = (byte)(256-j); 
-            }
-            ByteLookupTable blut = new ByteLookupTable(0, lut); 
-            op = new LookupOp(blut, null);
-            break;
-        }
- 
-        /* Rather than directly drawing the filtered image to the
-         * destination, filter it into a new image first, then that
-         * filtered image is ready for writing out or painting. 
-         */
-        biFiltered = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-        op.filter(bi, biFiltered);
     }
  
     /* Return the formats sorted alphabetically and in lower case */
     public String[] getFormats() {
         String[] formats = ImageIO.getWriterFormatNames();
-        TreeSet<String> formatSet = new TreeSet<String>();
+        TreeSet<String> formatSet = new TreeSet<>();
         for (String s : formats) {
             formatSet.add(s.toLowerCase());
         }
         return formatSet.toArray(new String[0]);
     }
  
- 
+    @Override
      public void actionPerformed(ActionEvent e) {
          JComboBox cb = (JComboBox)e.getSource();
          if (cb.getActionCommand().equals("SetFilter")) {
-             setOpIndex(cb.getSelectedIndex());
-             repaint();
+            switch (cb.getSelectedIndex()) {
+                case 0:
+                    this.filtragem.setFilter(new Original(this));
+                    break;
+                case 1:
+                    this.filtragem.setFilter(new LowPass(this));
+                    break;
+                case 2:
+                    this.filtragem.setFilter(new Sharpen(this));
+                    break;
+                case 3:
+                    this.filtragem.setFilter(new Lookup(this));
+                    break;
+            }
+            repaint();
          } else if (cb.getActionCommand().equals("Formats")) {
              /* Save the filtered image in the selected format.
               * The selected item will be the name of the format to use
@@ -152,8 +117,8 @@ public class SaveImage extends Component implements ActionListener {
              }
          }
     };
- 
-    public static void main(String s[]) {
+     
+     public static void main(String s[]) {
         JFrame f = new JFrame("Save Image Sample");
         f.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {System.exit(0);}
